@@ -377,9 +377,18 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
     print("Generating profile plots for each model separately...")
     months = np.arange(1, 13)
     month_names = {
-        1: "January", 2: "February", 3: "March", 4: "April",
-        5: "May", 6: "June", 7: "July", 8: "August",
-        9: "September", 10: "October", 11: "November", 12: "December"
+        1: "January",
+        2: "February",
+        3: "March",
+        4: "April",
+        5: "May",
+        6: "June",
+        7: "July",
+        8: "August",
+        9: "September",
+        10: "October",
+        11: "November",
+        12: "December",
     }
 
     # Model 1: ESRA Clear-Sky Profiles
@@ -389,8 +398,22 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
         ax = axes1[idx]
         pc = profile_clear.loc[m]
         ax.plot(pc.index, pc["Ghc"], label="Global (Ghc)", color="#2ca02c", linewidth=2)
-        ax.plot(pc.index, pc["Bhc"], label="Direct (Bhc)", color="#d62728", linewidth=2, linestyle="--")
-        ax.plot(pc.index, pc["Dhc"], label="Diffuse (Dhc)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.plot(
+            pc.index,
+            pc["Bhc"],
+            label="Direct (Bhc)",
+            color="#d62728",
+            linewidth=2,
+            linestyle="--",
+        )
+        ax.plot(
+            pc.index,
+            pc["Dhc"],
+            label="Diffuse (Dhc)",
+            color="#1f77b4",
+            linewidth=2,
+            linestyle=":",
+        )
         ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
         ax.grid(True, linestyle="--", alpha=0.5)
         if idx % 3 == 0:
@@ -399,7 +422,9 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
             ax.set_xlabel("Hour of Day", fontsize=10)
         if idx == 0:
             ax.legend(fontsize=9, loc="upper left")
-    fig1.suptitle("ESRA Clear-Sky Irradiance Profiles", fontsize=16, fontweight="bold", y=0.99)
+    fig1.suptitle(
+        "ESRA Clear-Sky Irradiance Profiles", fontsize=16, fontweight="bold", y=0.99
+    )
     fig1.tight_layout()
     fig1.savefig("solar_profiles_esra.png", dpi=150)
     plt.close(fig1)
@@ -412,8 +437,22 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
         ax = axes2[idx]
         pa = profile_actual.loc[m]
         ax.plot(pa.index, pa["GHI"], label="Global (GHI)", color="#2ca02c", linewidth=2)
-        ax.plot(pa.index, pa["BHI"], label="Direct (BHI)", color="#d62728", linewidth=2, linestyle="--")
-        ax.plot(pa.index, pa["DHI"], label="Diffuse (DHI)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.plot(
+            pa.index,
+            pa["BHI"],
+            label="Direct (BHI)",
+            color="#d62728",
+            linewidth=2,
+            linestyle="--",
+        )
+        ax.plot(
+            pa.index,
+            pa["DHI"],
+            label="Diffuse (DHI)",
+            color="#1f77b4",
+            linewidth=2,
+            linestyle=":",
+        )
         ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
         ax.grid(True, linestyle="--", alpha=0.5)
         if idx % 3 == 0:
@@ -422,11 +461,18 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
             ax.set_xlabel("Hour of Day", fontsize=10)
         if idx == 0:
             ax.legend(fontsize=9, loc="upper left")
-    fig2.suptitle("Decomposed Measured Horizontal Irradiance Profiles", fontsize=16, fontweight="bold", y=0.99)
+    fig2.suptitle(
+        "Decomposed Measured Horizontal Irradiance Profiles",
+        fontsize=16,
+        fontweight="bold",
+        y=0.99,
+    )
     fig2.tight_layout()
     fig2.savefig("solar_profiles_measured.png", dpi=150)
     plt.close(fig2)
-    print("Decomposed measured horizontal profiles saved to solar_profiles_measured.png")
+    print(
+        "Decomposed measured horizontal profiles saved to solar_profiles_measured.png"
+    )
 
     # Model 3: Tilted Surface Profiles (Hay Model)
     fig3, axes3 = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
@@ -435,8 +481,22 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
         ax = axes3[idx]
         pt = profile_tilted.loc[m]
         ax.plot(pt.index, pt["GTI"], label="Global (GTI)", color="#2ca02c", linewidth=2)
-        ax.plot(pt.index, pt["BTI"], label="Direct (BTI)", color="#d62728", linewidth=2, linestyle="--")
-        ax.plot(pt.index, pt["DTI"], label="Diffuse (DTI)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.plot(
+            pt.index,
+            pt["BTI"],
+            label="Direct (BTI)",
+            color="#d62728",
+            linewidth=2,
+            linestyle="--",
+        )
+        ax.plot(
+            pt.index,
+            pt["DTI"],
+            label="Diffuse (DTI)",
+            color="#1f77b4",
+            linewidth=2,
+            linestyle=":",
+        )
         ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
         ax.grid(True, linestyle="--", alpha=0.5)
         if idx % 3 == 0:
@@ -445,7 +505,12 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
             ax.set_xlabel("Hour of Day", fontsize=10)
         if idx == 0:
             ax.legend(fontsize=9, loc="upper left")
-    fig3.suptitle("Tilted Surface Irradiance Profiles (Hay Model)", fontsize=16, fontweight="bold", y=0.99)
+    fig3.suptitle(
+        "Tilted Surface Irradiance Profiles (Hay Model)",
+        fontsize=16,
+        fontweight="bold",
+        y=0.99,
+    )
     fig3.tight_layout()
     fig3.savefig("solar_profiles_tilted.png", dpi=150)
     plt.close(fig3)
@@ -461,8 +526,8 @@ def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
     months = np.arange(1, 13)
 
     # Extract values into lists
-    meas_ghi = [avg_monthly_sums.loc[m, 'GHI'] for m in months]
-    meas_gti = [avg_monthly_sums.loc[m, 'GTI'] for m in months]
+    meas_ghi = [avg_monthly_sums.loc[m, "GHI"] for m in months]
+    meas_gti = [avg_monthly_sums.loc[m, "GTI"] for m in months]
     pvgis_ghi_vals = [pvgis_horiz.get(m, 0) for m in months]
     pvgis_gti_vals = [pvgis_tilt.get(m, 0) for m in months]
 
@@ -472,26 +537,58 @@ def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
     width = 0.35
 
     # Subplot 1: GHI Comparison
-    rects1 = ax1.bar(x - width/2, meas_ghi, width, label='Measured GHI', color='#1f77b4', alpha=0.85)
-    rects2 = ax1.bar(x + width/2, pvgis_ghi_vals, width, label='PVGIS GHI', color='#aec7e8', alpha=0.85)
-    ax1.set_ylabel('Irradiation (kWh/m2/month)', fontsize=11)
-    ax1.set_title('Global Horizontal Irradiation (GHI) Comparison', fontsize=13, fontweight='bold')
+    rects1 = ax1.bar(
+        x - width / 2,
+        meas_ghi,
+        width,
+        label="Measured GHI",
+        color="#1f77b4",
+        alpha=0.85,
+    )
+    rects2 = ax1.bar(
+        x + width / 2,
+        pvgis_ghi_vals,
+        width,
+        label="PVGIS GHI",
+        color="#aec7e8",
+        alpha=0.85,
+    )
+    ax1.set_ylabel("Irradiation (kWh/m2/month)", fontsize=11)
+    ax1.set_title(
+        "Global Horizontal Irradiation (GHI) Comparison", fontsize=13, fontweight="bold"
+    )
     ax1.set_xticks(x)
     ax1.set_xticklabels([str(m) for m in months])
-    ax1.set_xlabel('Month', fontsize=11)
+    ax1.set_xlabel("Month", fontsize=11)
     ax1.legend(fontsize=10)
-    ax1.grid(axis='y', linestyle='--', alpha=0.7)
+    ax1.grid(axis="y", linestyle="--", alpha=0.7)
 
     # Subplot 2: GTI Comparison
-    rects3 = ax2.bar(x - width/2, meas_gti, width, label='Measured GTI', color='#ff7f0e', alpha=0.85)
-    rects4 = ax2.bar(x + width/2, pvgis_gti_vals, width, label='PVGIS GTI', color='#ffbb78', alpha=0.85)
-    ax2.set_ylabel('Irradiation (kWh/m2/month)', fontsize=11)
-    ax2.set_title('Global Tilted Irradiation (GTI) Comparison', fontsize=13, fontweight='bold')
+    rects3 = ax2.bar(
+        x - width / 2,
+        meas_gti,
+        width,
+        label="Measured GTI",
+        color="#ff7f0e",
+        alpha=0.85,
+    )
+    rects4 = ax2.bar(
+        x + width / 2,
+        pvgis_gti_vals,
+        width,
+        label="PVGIS GTI",
+        color="#ffbb78",
+        alpha=0.85,
+    )
+    ax2.set_ylabel("Irradiation (kWh/m2/month)", fontsize=11)
+    ax2.set_title(
+        "Global Tilted Irradiation (GTI) Comparison", fontsize=13, fontweight="bold"
+    )
     ax2.set_xticks(x)
     ax2.set_xticklabels([str(m) for m in months])
-    ax2.set_xlabel('Month', fontsize=11)
+    ax2.set_xlabel("Month", fontsize=11)
     ax2.legend(fontsize=10)
-    ax2.grid(axis='y', linestyle='--', alpha=0.7)
+    ax2.grid(axis="y", linestyle="--", alpha=0.7)
 
     plt.tight_layout()
     plt.savefig("pvgis_comparison.png", dpi=150)
@@ -506,18 +603,52 @@ def plot_invalid_data(df):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
     # Left Subplot: Timeseries
-    ax1.scatter(valid_df.index, valid_df["GHI_meas"], color="lightgray", s=5, label="Valid Data", alpha=0.5)
-    ax1.scatter(invalid_df.index, invalid_df["GHI_meas"], color="red", s=15, label="Invalid Data", alpha=0.8)
-    ax1.set_title("Measured GHI Timeseries with Flagged Invalid Data", fontsize=12, fontweight="bold")
+    ax1.scatter(
+        valid_df.index,
+        valid_df["GHI_meas"],
+        color="lightgray",
+        s=5,
+        label="Valid Data",
+        alpha=0.5,
+    )
+    ax1.scatter(
+        invalid_df.index,
+        invalid_df["GHI_meas"],
+        color="red",
+        s=15,
+        label="Invalid Data",
+        alpha=0.8,
+    )
+    ax1.set_title(
+        "Measured GHI Timeseries with Flagged Invalid Data",
+        fontsize=12,
+        fontweight="bold",
+    )
     ax1.set_xlabel("Date", fontsize=11)
     ax1.set_ylabel("GHI (W/m2)", fontsize=11)
     ax1.legend()
     ax1.grid(True, linestyle="--", alpha=0.5)
 
     # Right Subplot: GHI vs alpha
-    ax2.scatter(valid_df["alpha"], valid_df["GHI_meas"], color="lightgray", s=5, label="Valid Data", alpha=0.5)
-    ax2.scatter(invalid_df["alpha"], invalid_df["GHI_meas"], color="red", s=15, label="Invalid Data", alpha=0.8)
-    ax2.set_title("Measured GHI vs. Solar Elevation Angle (alpha)", fontsize=12, fontweight="bold")
+    ax2.scatter(
+        valid_df["alpha"],
+        valid_df["GHI_meas"],
+        color="lightgray",
+        s=5,
+        label="Valid Data",
+        alpha=0.5,
+    )
+    ax2.scatter(
+        invalid_df["alpha"],
+        invalid_df["GHI_meas"],
+        color="red",
+        s=15,
+        label="Invalid Data",
+        alpha=0.8,
+    )
+    ax2.set_title(
+        "Measured GHI vs. Solar Elevation Angle (alpha)", fontsize=12, fontweight="bold"
+    )
     ax2.set_xlabel("Solar Elevation Angle (degrees)", fontsize=11)
     ax2.set_ylabel("GHI (W/m2)", fontsize=11)
     ax2.legend()
