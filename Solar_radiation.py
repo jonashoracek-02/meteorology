@@ -456,6 +456,36 @@ def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
     print("PVGIS comparison plots saved to pvgis_comparison.png")
 
 
+def plot_invalid_data(df):
+    print("Generating invalid data scatter plots...")
+    invalid_df = df[~df["valid"]]
+    valid_df = df[df["valid"]]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    # Left Subplot: Timeseries
+    ax1.scatter(valid_df.index, valid_df["GHI_meas"], color="lightgray", s=5, label="Valid Data", alpha=0.5)
+    ax1.scatter(invalid_df.index, invalid_df["GHI_meas"], color="red", s=15, label="Invalid Data", alpha=0.8)
+    ax1.set_title("Measured GHI Timeseries with Flagged Invalid Data", fontsize=12, fontweight="bold")
+    ax1.set_xlabel("Date", fontsize=11)
+    ax1.set_ylabel("GHI (W/m2)", fontsize=11)
+    ax1.legend()
+    ax1.grid(True, linestyle="--", alpha=0.5)
+
+    # Right Subplot: GHI vs alpha
+    ax2.scatter(valid_df["alpha"], valid_df["GHI_meas"], color="lightgray", s=5, label="Valid Data", alpha=0.5)
+    ax2.scatter(invalid_df["alpha"], invalid_df["GHI_meas"], color="red", s=15, label="Invalid Data", alpha=0.8)
+    ax2.set_title("Measured GHI vs. Solar Elevation Angle (alpha)", fontsize=12, fontweight="bold")
+    ax2.set_xlabel("Solar Elevation Angle (degrees)", fontsize=11)
+    ax2.set_ylabel("GHI (W/m2)", fontsize=11)
+    ax2.legend()
+    ax2.grid(True, linestyle="--", alpha=0.5)
+
+    plt.tight_layout()
+    plt.savefig("invalid_data_scatter.png", dpi=150)
+    print("Invalid data scatter plots saved to invalid_data_scatter.png")
+
+
 def main():
     file_path = "Group2_solar_radiation.xlsx"
     df = load_and_prepare_data(file_path)
@@ -507,6 +537,7 @@ def main():
     print("TMY data saved to TMY_data.csv")
 
     plot_results(profile_clear, profile_actual, profile_tilted)
+    plot_invalid_data(df)
 
 
 if __name__ == "__main__":
