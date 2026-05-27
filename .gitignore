@@ -18,3 +18,4 @@ venv.bak/
 # Project-specific generated outputs
 TMY_data.csv
 solar_profiles.png
+pvgis_comparison.png

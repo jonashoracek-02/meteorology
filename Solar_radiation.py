@@ -48,52 +48,48 @@ def load_and_prepare_data(file_path):
 
 
 def calculate_solar_geometry(df, lat, lon):
-    print("Calculating solar geometry...")
-    gamma = 2 * np.pi * (df["day_of_year"] - 1) / 365.0
+    print("Calculating solar geometry (Presentation Formulas)...")
+    dn = df["day_of_year"].values
 
-    delta = (
-        0.006918
-        - 0.399912 * np.cos(gamma)
-        + 0.070257 * np.sin(gamma)
-        - 0.006758 * np.cos(2 * gamma)
-        + 0.000907 * np.sin(2 * gamma)
-        - 0.002697 * np.cos(3 * gamma)
-        + 0.00148 * np.sin(3 * gamma)
-    )
+    # Eq. 17: Solar declination
+    delta = 23.45 * np.sin(np.deg2rad((360.0 / 365.0) * (dn + 284.0)))
+    delta_rad = np.deg2rad(delta)
 
-    eot = 229.18 * (
+    # Eq. 13: Eccentricity correction factor E0
+    E0 = 1.0 + 0.033 * np.cos(2.0 * np.pi * dn / 365.0)
+
+    # Eq. 14: Extraterrestrial normal irradiance F0,n (using FSC = 1366 W/m2)
+    I0 = 1366.0 * E0
+
+    # Eq. 15: Equation of Time
+    gamma = 2.0 * np.pi * (dn - 1.0) / 365.0
+    eot = (
         0.000075
         + 0.001868 * np.cos(gamma)
         - 0.032077 * np.sin(gamma)
         - 0.014615 * np.cos(2 * gamma)
         - 0.040849 * np.sin(2 * gamma)
-    )
+    ) * 229.18
 
+    # Eq. 16: Local Apparent Time / True Solar Time
     tst = df["UTC_hour"] + lon / 15.0 + eot / 60.0
     tst = tst % 24
 
-    omega = np.deg2rad(15 * (tst - 12.0))
+    omega = np.deg2rad(15.0 * (tst - 12.0))
     lat_rad = np.deg2rad(lat)
 
-    cos_theta_z = np.sin(lat_rad) * np.sin(delta) + np.cos(lat_rad) * np.cos(
-        delta
+    # Eq. 18: Zenith angle
+    cos_theta_z = np.sin(lat_rad) * np.sin(delta_rad) + np.cos(lat_rad) * np.cos(
+        delta_rad
     ) * np.cos(omega)
     cos_theta_z = np.clip(cos_theta_z, -1.0, 1.0)
     theta_z = np.arccos(cos_theta_z)
     alpha = 90.0 - np.rad2deg(theta_z)
 
-    I0 = 1367 * (
-        1.00011
-        + 0.034221 * np.cos(gamma)
-        + 0.00128 * np.sin(gamma)
-        + 0.000719 * np.cos(2 * gamma)
-        + 0.000077 * np.sin(2 * gamma)
-    )
-
     df["alpha"] = alpha
     df["theta_z"] = np.rad2deg(theta_z)
     df["I0"] = I0
-    df["delta"] = np.rad2deg(delta)
+    df["delta"] = delta
     df["omega"] = np.rad2deg(omega)
     return df
 
@@ -204,36 +200,6 @@ def gap_filling(df):
     return df
 
 
-def decomposition_erbs(df):
-    print("Performing Erbs decomposition...")
-    df["kt_filled"] = np.where(df["Gext"] > 0, df["GHI"] / df["Gext"], 0)
-    df["kt_filled"] = np.clip(df["kt_filled"], 0, 1)
-
-    kt = df["kt_filled"].values
-    kd = np.zeros_like(kt)
-
-    mask1 = kt <= 0.22
-    mask2 = (kt > 0.22) & (kt <= 0.8)
-    mask3 = kt > 0.8
-
-    kd[mask1] = 1.0 - 0.09 * kt[mask1]
-    kd[mask2] = (
-        0.9511
-        - 0.1604 * kt[mask2]
-        + 4.388 * kt[mask2] ** 2
-        - 16.638 * kt[mask2] ** 3
-        + 12.336 * kt[mask2] ** 4
-    )
-    kd[mask3] = 0.165
-
-    df["DHI"] = kd * df["GHI"]
-    df["BHI"] = df["GHI"] - df["DHI"]
-    df.loc[df["alpha"] <= 0, "DHI"] = 0
-    df.loc[df["alpha"] <= 0, "BHI"] = 0
-
-    return df
-
-
 def decomposition_orgill_hollands(df):
     print("Performing Orgill and Hollands decomposition...")
     df["kt_filled"] = np.where(df["Gext"] > 0, df["GHI"] / df["Gext"], 0)
@@ -258,67 +224,48 @@ def decomposition_orgill_hollands(df):
     return df
 
 
-def calculate_transposition(df, slope, azimuth_surface, albedo, lat):
-    print("Calculating Transposition (Isotropic Model)...")
-    beta = np.deg2rad(slope)
-    gamma = np.deg2rad(azimuth_surface)
-    phi = np.deg2rad(lat)
-    delta = np.deg2rad(df["delta"].values)
-    omega = np.deg2rad(df["omega"].values)
-    alpha_rad = np.deg2rad(df["alpha"].values)
-
-    cos_theta = (
-        np.sin(delta) * np.sin(phi) * np.cos(beta)
-        - np.sin(delta) * np.cos(phi) * np.sin(beta) * np.cos(gamma)
-        + np.cos(delta) * np.cos(phi) * np.cos(beta) * np.cos(omega)
-        + np.cos(delta) * np.sin(phi) * np.sin(beta) * np.cos(gamma) * np.cos(omega)
-        + np.cos(delta) * np.sin(beta) * np.sin(gamma) * np.sin(omega)
-    )
-
-    cos_theta = np.clip(cos_theta, 0, 1)
-    sin_alpha = np.sin(alpha_rad)
-    Rb = np.where(sin_alpha > 0, cos_theta / sin_alpha, 0)
-
-    df["BTI"] = df["BHI"] * Rb
-    df["DTI"] = df["DHI"] * ((1 + np.cos(beta)) / 2)
-    df["RTI"] = df["GHI"] * albedo * ((1 - np.cos(beta)) / 2)
-    df["GTI"] = df["BTI"] + df["DTI"] + df["RTI"]
-
-    return df
-
-
 def calculate_transposition_hay(df, slope, azimuth_surface, albedo, lat):
-    print("Calculating Transposition (Hay Model)...")
+    print("Calculating Transposition (Hay Model - Presentation Formulas)...")
     beta = np.deg2rad(slope)
     gamma = np.deg2rad(azimuth_surface)
     phi = np.deg2rad(lat)
     delta = np.deg2rad(df["delta"].values)
     omega = np.deg2rad(df["omega"].values)
-    alpha_rad = np.deg2rad(df["alpha"].values)
+    theta_z = np.deg2rad(df["theta_z"].values)
 
+    # Eq. 22: Incidence angle (theta)
     cos_theta = (
-        np.sin(delta) * np.sin(phi) * np.cos(beta)
-        - np.sin(delta) * np.cos(phi) * np.sin(beta) * np.cos(gamma)
-        + np.cos(delta) * np.cos(phi) * np.cos(beta) * np.cos(omega)
-        + np.cos(delta) * np.sin(phi) * np.sin(beta) * np.cos(gamma) * np.cos(omega)
+        (np.sin(phi) * np.cos(beta) - np.cos(phi) * np.sin(beta) * np.cos(gamma))
+        * np.sin(delta)
+        + (np.cos(phi) * np.cos(beta) + np.sin(phi) * np.sin(beta) * np.cos(gamma))
+        * np.cos(delta)
+        * np.cos(omega)
         + np.cos(delta) * np.sin(beta) * np.sin(gamma) * np.sin(omega)
     )
-
     cos_theta = np.clip(cos_theta, 0, 1)
-    sin_alpha = np.sin(alpha_rad)
-    Rb = np.where(sin_alpha > 0, cos_theta / sin_alpha, 0)
+    cos_theta_z = np.cos(theta_z)
 
-    # Calculate Anisotropy Index Ai = BHI / Gext
+    # Geometric ratio Rb = cos(theta) / cos(theta_z)
+    Rb = np.where(cos_theta_z > 0, cos_theta / cos_theta_z, 0)
+
+    # Direct beam transmittance kN (Anisotropy Index)
     Gext = df["Gext"].values
     BHI = df["BHI"].values
-    Ai = np.zeros_like(BHI)
+    kN = np.zeros_like(BHI)
     mask_gext = Gext > 0
-    Ai[mask_gext] = BHI[mask_gext] / Gext[mask_gext]
-    Ai = np.clip(Ai, 0, 1)
+    kN[mask_gext] = BHI[mask_gext] / Gext[mask_gext]
+    kN = np.clip(kN, 0, 1)
 
+    # Eq. 31: Beam Transposed Irradiance
     df["BTI"] = df["BHI"] * Rb
-    df["DTI"] = df["DHI"] * (Ai * Rb + (1 - Ai) * ((1 + np.cos(beta)) / 2))
-    df["RTI"] = df["GHI"] * albedo * ((1 - np.cos(beta)) / 2)
+
+    # Eq. 36: Diffuse Transposed Irradiance (Hay model)
+    df["DTI"] = df["DHI"] * (kN * Rb + 0.5 * (1 + np.cos(beta)) * (1 - kN))
+
+    # Eq. 32: Reflected Transposed Irradiance
+    df["RTI"] = 0.5 * df["GHI"] * albedo * (1 - np.cos(beta))
+
+    # Eq. 30: Global Tilted Irradiance
     df["GTI"] = df["BTI"] + df["DTI"] + df["RTI"]
 
     return df
@@ -463,6 +410,52 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
     print("Plots saved to solar_profiles.png")
 
 
+def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
+    if not pvgis_horiz or not pvgis_tilt:
+        print("PVGIS data missing, skipping comparison plot.")
+        return
+
+    print("Generating PVGIS comparison plots...")
+    months = np.arange(1, 13)
+
+    # Extract values into lists
+    meas_ghi = [avg_monthly_sums.loc[m, 'GHI'] for m in months]
+    meas_gti = [avg_monthly_sums.loc[m, 'GTI'] for m in months]
+    pvgis_ghi_vals = [pvgis_horiz.get(m, 0) for m in months]
+    pvgis_gti_vals = [pvgis_tilt.get(m, 0) for m in months]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    x = np.arange(len(months))
+    width = 0.35
+
+    # Subplot 1: GHI Comparison
+    rects1 = ax1.bar(x - width/2, meas_ghi, width, label='Measured GHI', color='#1f77b4', alpha=0.85)
+    rects2 = ax1.bar(x + width/2, pvgis_ghi_vals, width, label='PVGIS GHI', color='#aec7e8', alpha=0.85)
+    ax1.set_ylabel('Irradiation (kWh/m2/month)', fontsize=11)
+    ax1.set_title('Global Horizontal Irradiation (GHI) Comparison', fontsize=13, fontweight='bold')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels([str(m) for m in months])
+    ax1.set_xlabel('Month', fontsize=11)
+    ax1.legend(fontsize=10)
+    ax1.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Subplot 2: GTI Comparison
+    rects3 = ax2.bar(x - width/2, meas_gti, width, label='Measured GTI', color='#ff7f0e', alpha=0.85)
+    rects4 = ax2.bar(x + width/2, pvgis_gti_vals, width, label='PVGIS GTI', color='#ffbb78', alpha=0.85)
+    ax2.set_ylabel('Irradiation (kWh/m2/month)', fontsize=11)
+    ax2.set_title('Global Tilted Irradiation (GTI) Comparison', fontsize=13, fontweight='bold')
+    ax2.set_xticks(x)
+    ax2.set_xticklabels([str(m) for m in months])
+    ax2.set_xlabel('Month', fontsize=11)
+    ax2.legend(fontsize=10)
+    ax2.grid(axis='y', linestyle='--', alpha=0.7)
+
+    plt.tight_layout()
+    plt.savefig("pvgis_comparison.png", dpi=150)
+    print("PVGIS comparison plots saved to pvgis_comparison.png")
+
+
 def main():
     file_path = "Group2_solar_radiation.xlsx"
     df = load_and_prepare_data(file_path)
@@ -504,6 +497,7 @@ def main():
             print(
                 f"{m:5d} | {avg_monthly_sums.loc[m, 'GHI']:8.2f} | {pvgis_h_val:9.2f} | {avg_monthly_sums.loc[m, 'GTI']:8.2f} | {pvgis_t_val:9.2f}"
             )
+        plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt)
 
     tmy_df, best_years = calculate_tmy(df)
 
