@@ -234,6 +234,30 @@ def decomposition_erbs(df):
     return df
 
 
+def decomposition_orgill_hollands(df):
+    print("Performing Orgill and Hollands decomposition...")
+    df["kt_filled"] = np.where(df["Gext"] > 0, df["GHI"] / df["Gext"], 0)
+    df["kt_filled"] = np.clip(df["kt_filled"], 0, 1)
+
+    kt = df["kt_filled"].values
+    kd = np.zeros_like(kt)
+
+    mask1 = kt < 0.35
+    mask2 = (kt >= 0.35) & (kt <= 0.75)
+    mask3 = kt > 0.75
+
+    kd[mask1] = 1.0 - 0.249 * kt[mask1]
+    kd[mask2] = 1.557 - 1.84 * kt[mask2]
+    kd[mask3] = 0.177
+
+    df["DHI"] = kd * df["GHI"]
+    df["BHI"] = df["GHI"] - df["DHI"]
+    df.loc[df["alpha"] <= 0, "DHI"] = 0
+    df.loc[df["alpha"] <= 0, "BHI"] = 0
+
+    return df
+
+
 def calculate_transposition(df, slope, azimuth_surface, albedo, lat):
     print("Calculating Transposition (Isotropic Model)...")
     beta = np.deg2rad(slope)
@@ -414,7 +438,7 @@ def main():
     print(f"Data passing quality control: {valid_pct:.2f}%")
 
     df = gap_filling(df)
-    df = decomposition_erbs(df)
+    df = decomposition_orgill_hollands(df)
     df = calculate_transposition(df, SLOPE, AZIMUTH_SURFACE, ALBEDO, LATITUDE)
 
     profile_clear, profile_actual, profile_tilted = evaluate_monthly_profiles(df)
