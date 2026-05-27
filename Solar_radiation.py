@@ -374,7 +374,7 @@ def calculate_tmy(df):
 
 
 def plot_results(profile_clear, profile_actual, profile_tilted):
-    print("Generating monthly average daily cycles for each month separately...")
+    print("Generating profile plots for each model separately...")
     months = np.arange(1, 13)
     month_names = {
         1: "January", 2: "February", 3: "March", 4: "April",
@@ -382,52 +382,74 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
         9: "September", 10: "October", 11: "November", 12: "December"
     }
 
-    for m in months:
-        # Create a new figure with 3 subplots side-by-side
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6), sharex=True)
-
+    # Model 1: ESRA Clear-Sky Profiles
+    fig1, axes1 = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
+    axes1 = axes1.flatten()
+    for idx, m in enumerate(months):
+        ax = axes1[idx]
         pc = profile_clear.loc[m]
+        ax.plot(pc.index, pc["Ghc"], label="Global (Ghc)", color="#2ca02c", linewidth=2)
+        ax.plot(pc.index, pc["Bhc"], label="Direct (Bhc)", color="#d62728", linewidth=2, linestyle="--")
+        ax.plot(pc.index, pc["Dhc"], label="Diffuse (Dhc)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        if idx % 3 == 0:
+            ax.set_ylabel("Irradiance (W/m2)", fontsize=10)
+        if idx >= 9:
+            ax.set_xlabel("Hour of Day", fontsize=10)
+        if idx == 0:
+            ax.legend(fontsize=9, loc="upper left")
+    fig1.suptitle("ESRA Clear-Sky Irradiance Profiles", fontsize=16, fontweight="bold", y=0.99)
+    fig1.tight_layout()
+    fig1.savefig("solar_profiles_esra.png", dpi=150)
+    plt.close(fig1)
+    print("ESRA clear-sky profiles saved to solar_profiles_esra.png")
+
+    # Model 2: Decomposed Measured Horizontal Profiles
+    fig2, axes2 = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
+    axes2 = axes2.flatten()
+    for idx, m in enumerate(months):
+        ax = axes2[idx]
         pa = profile_actual.loc[m]
+        ax.plot(pa.index, pa["GHI"], label="Global (GHI)", color="#2ca02c", linewidth=2)
+        ax.plot(pa.index, pa["BHI"], label="Direct (BHI)", color="#d62728", linewidth=2, linestyle="--")
+        ax.plot(pa.index, pa["DHI"], label="Diffuse (DHI)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        if idx % 3 == 0:
+            ax.set_ylabel("Irradiance (W/m2)", fontsize=10)
+        if idx >= 9:
+            ax.set_xlabel("Hour of Day", fontsize=10)
+        if idx == 0:
+            ax.legend(fontsize=9, loc="upper left")
+    fig2.suptitle("Decomposed Measured Horizontal Irradiance Profiles", fontsize=16, fontweight="bold", y=0.99)
+    fig2.tight_layout()
+    fig2.savefig("solar_profiles_measured.png", dpi=150)
+    plt.close(fig2)
+    print("Decomposed measured horizontal profiles saved to solar_profiles_measured.png")
+
+    # Model 3: Tilted Surface Profiles (Hay Model)
+    fig3, axes3 = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
+    axes3 = axes3.flatten()
+    for idx, m in enumerate(months):
+        ax = axes3[idx]
         pt = profile_tilted.loc[m]
-
-        # 1. Global Irradiance Subplot
-        ax1.plot(pc.index, pc["Ghc"], label="ESRA Clear-Sky (Ghc)", color="#2ca02c", linewidth=2.5)
-        ax1.plot(pa.index, pa["GHI"], label="Decomposed Horizontal (GHI)", color="#1f77b4", linewidth=2.5)
-        ax1.plot(pt.index, pt["GTI"], label="Tilted Surface (GTI)", color="#ff7f0e", linewidth=2.5)
-        ax1.set_title("Global Irradiance Comparison", fontsize=12, fontweight="bold")
-        ax1.set_xlabel("Hour of Day", fontsize=11)
-        ax1.set_ylabel("Irradiance (W/m2)", fontsize=11)
-        ax1.legend(fontsize=9, loc="upper left")
-        ax1.grid(True, linestyle="--", alpha=0.5)
-
-        # 2. Direct / Beam Irradiance Subplot
-        ax2.plot(pc.index, pc["Bhc"], label="ESRA Clear-Sky (Bhc)", color="#2ca02c", linewidth=2.5, linestyle="--")
-        ax2.plot(pa.index, pa["BHI"], label="Decomposed Horizontal (BHI)", color="#1f77b4", linewidth=2.5, linestyle="--")
-        ax2.plot(pt.index, pt["BTI"], label="Tilted Surface (BTI)", color="#ff7f0e", linewidth=2.5, linestyle="--")
-        ax2.set_title("Direct (Beam) Irradiance Comparison", fontsize=12, fontweight="bold")
-        ax2.set_xlabel("Hour of Day", fontsize=11)
-        ax2.set_ylabel("Irradiance (W/m2)", fontsize=11)
-        ax2.legend(fontsize=9, loc="upper left")
-        ax2.grid(True, linestyle="--", alpha=0.5)
-
-        # 3. Diffuse Irradiance Subplot
-        ax3.plot(pc.index, pc["Dhc"], label="ESRA Clear-Sky (Dhc)", color="#2ca02c", linewidth=2.5, linestyle=":")
-        ax3.plot(pa.index, pa["DHI"], label="Decomposed Horizontal (DHI)", color="#1f77b4", linewidth=2.5, linestyle=":")
-        ax3.plot(pt.index, pt["DTI"], label="Tilted Surface (DTI)", color="#ff7f0e", linewidth=2.5, linestyle=":")
-        ax3.set_title("Diffuse Irradiance Comparison", fontsize=12, fontweight="bold")
-        ax3.set_xlabel("Hour of Day", fontsize=11)
-        ax3.set_ylabel("Irradiance (W/m2)", fontsize=11)
-        ax3.legend(fontsize=9, loc="upper left")
-        ax3.grid(True, linestyle="--", alpha=0.5)
-
-        # Super title for the whole figure
-        plt.suptitle(f"Monthly Average Daily Cycles - {month_names[m]}", fontsize=15, fontweight="bold", y=0.98)
-
-        plt.tight_layout()
-        filename = f"monthly_profile_Month_{m}.png"
-        plt.savefig(filename, dpi=150)
-        plt.close()
-        print(f"Plot saved to {filename}")
+        ax.plot(pt.index, pt["GTI"], label="Global (GTI)", color="#2ca02c", linewidth=2)
+        ax.plot(pt.index, pt["BTI"], label="Direct (BTI)", color="#d62728", linewidth=2, linestyle="--")
+        ax.plot(pt.index, pt["DTI"], label="Diffuse (DTI)", color="#1f77b4", linewidth=2, linestyle=":")
+        ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        if idx % 3 == 0:
+            ax.set_ylabel("Irradiance (W/m2)", fontsize=10)
+        if idx >= 9:
+            ax.set_xlabel("Hour of Day", fontsize=10)
+        if idx == 0:
+            ax.legend(fontsize=9, loc="upper left")
+    fig3.suptitle("Tilted Surface Irradiance Profiles (Hay Model)", fontsize=16, fontweight="bold", y=0.99)
+    fig3.tight_layout()
+    fig3.savefig("solar_profiles_tilted.png", dpi=150)
+    plt.close(fig3)
+    print("Tilted surface profiles saved to solar_profiles_tilted.png")
 
 
 def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
