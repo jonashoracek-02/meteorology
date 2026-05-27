@@ -372,42 +372,46 @@ def calculate_tmy(df):
 
 
 def plot_results(profile_clear, profile_actual, profile_tilted):
-    month_to_plot = 7
-    fig, axes = plt.subplots(3, 1, figsize=(10, 15))
+    print("Generating monthly average daily cycles for all months...")
+    fig, axes = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
+    axes = axes.flatten()
 
-    pc = profile_clear.loc[month_to_plot]
-    axes[0].plot(pc.index, pc["Ghc"], label="Ghc")
-    axes[0].plot(pc.index, pc["Bhc"], label="Bhc")
-    axes[0].plot(pc.index, pc["Dhc"], label="Dhc")
-    axes[0].set_title("Clear-Sky Monthly Average Daily Cycle (July)")
-    axes[0].set_xlabel("Hour")
-    axes[0].set_ylabel("Irradiance (W/m2)")
-    axes[0].legend()
-    axes[0].grid()
+    months = np.arange(1, 13)
+    month_names = {
+        1: "January", 2: "February", 3: "March", 4: "April",
+        5: "May", 6: "June", 7: "July", 8: "August",
+        9: "September", 10: "October", 11: "November", 12: "December"
+    }
 
-    pa = profile_actual.loc[month_to_plot]
-    axes[1].plot(pa.index, pa["GHI"], label="GHI")
-    axes[1].plot(pa.index, pa["BHI"], label="BHI")
-    axes[1].plot(pa.index, pa["DHI"], label="DHI")
-    axes[1].set_title("Decomposed Monthly Average Daily Cycle (July)")
-    axes[1].set_xlabel("Hour")
-    axes[1].set_ylabel("Irradiance (W/m2)")
-    axes[1].legend()
-    axes[1].grid()
+    for idx, m in enumerate(months):
+        ax = axes[idx]
 
-    pt = profile_tilted.loc[month_to_plot]
-    axes[2].plot(pt.index, pt["GTI"], label="GTI")
-    axes[2].plot(pt.index, pt["BTI"], label="BTI")
-    axes[2].plot(pt.index, pt["DTI"], label="DTI")
-    axes[2].set_title("Tilted Monthly Average Daily Cycle (July)")
-    axes[2].set_xlabel("Hour")
-    axes[2].set_ylabel("Irradiance (W/m2)")
-    axes[2].legend()
-    axes[2].grid()
+        # Get data for the month
+        pc = profile_clear.loc[m]
+        pa = profile_actual.loc[m]
+        pt = profile_tilted.loc[m]
+
+        # Plot curves
+        ax.plot(pc.index, pc["Ghc"], label="Clear-Sky (Ghc)", color="#2ca02c", linewidth=2)
+        ax.plot(pa.index, pa["GHI"], label="Decomposed Horiz (GHI)", color="#1f77b4", linewidth=2)
+        ax.plot(pt.index, pt["GTI"], label="Tilted Surface (GTI)", color="#ff7f0e", linewidth=2)
+
+        ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
+        ax.grid(True, linestyle="--", alpha=0.5)
+
+        # Labels
+        if idx % 3 == 0:
+            ax.set_ylabel("Irradiance (W/m2)", fontsize=10)
+        if idx >= 9:
+            ax.set_xlabel("Hour of Day", fontsize=10)
+
+        # Legend only on the first plot to avoid clutter
+        if idx == 0:
+            ax.legend(fontsize=9, loc="upper left")
 
     plt.tight_layout()
-    plt.savefig("solar_profiles.png")
-    print("Plots saved to solar_profiles.png")
+    plt.savefig("solar_profiles.png", dpi=150)
+    print("Monthly average daily cycles saved to solar_profiles.png")
 
 
 def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
