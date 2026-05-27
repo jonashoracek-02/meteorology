@@ -246,7 +246,9 @@ def calculate_transposition_hay(df, slope, azimuth_surface, albedo, lat):
     cos_theta_z = np.cos(theta_z)
 
     # Geometric ratio Rb = cos(theta) / cos(theta_z)
+    # Apply standard 2-degree elevation cutoff to avoid unphysical sunset/sunrise spikes
     Rb = np.where(cos_theta_z > 0, cos_theta / cos_theta_z, 0)
+    Rb = np.where(df["alpha"].values > 2.0, Rb, 0)
 
     # Direct beam transmittance kN (Anisotropy Index)
     Gext = df["Gext"].values
@@ -372,10 +374,7 @@ def calculate_tmy(df):
 
 
 def plot_results(profile_clear, profile_actual, profile_tilted):
-    print("Generating monthly average daily cycles for all months...")
-    fig, axes = plt.subplots(4, 3, figsize=(15, 18), sharex=True, sharey=True)
-    axes = axes.flatten()
-
+    print("Generating monthly average daily cycles for each month separately...")
     months = np.arange(1, 13)
     month_names = {
         1: "January", 2: "February", 3: "March", 4: "April",
@@ -383,35 +382,52 @@ def plot_results(profile_clear, profile_actual, profile_tilted):
         9: "September", 10: "October", 11: "November", 12: "December"
     }
 
-    for idx, m in enumerate(months):
-        ax = axes[idx]
+    for m in months:
+        # Create a new figure with 3 subplots side-by-side
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6), sharex=True)
 
-        # Get data for the month
         pc = profile_clear.loc[m]
         pa = profile_actual.loc[m]
         pt = profile_tilted.loc[m]
 
-        # Plot curves
-        ax.plot(pc.index, pc["Ghc"], label="Clear-Sky (Ghc)", color="#2ca02c", linewidth=2)
-        ax.plot(pa.index, pa["GHI"], label="Decomposed Horiz (GHI)", color="#1f77b4", linewidth=2)
-        ax.plot(pt.index, pt["GTI"], label="Tilted Surface (GTI)", color="#ff7f0e", linewidth=2)
+        # 1. Global Irradiance Subplot
+        ax1.plot(pc.index, pc["Ghc"], label="ESRA Clear-Sky (Ghc)", color="#2ca02c", linewidth=2.5)
+        ax1.plot(pa.index, pa["GHI"], label="Decomposed Horizontal (GHI)", color="#1f77b4", linewidth=2.5)
+        ax1.plot(pt.index, pt["GTI"], label="Tilted Surface (GTI)", color="#ff7f0e", linewidth=2.5)
+        ax1.set_title("Global Irradiance Comparison", fontsize=12, fontweight="bold")
+        ax1.set_xlabel("Hour of Day", fontsize=11)
+        ax1.set_ylabel("Irradiance (W/m2)", fontsize=11)
+        ax1.legend(fontsize=9, loc="upper left")
+        ax1.grid(True, linestyle="--", alpha=0.5)
 
-        ax.set_title(f"{month_names[m]}", fontsize=12, fontweight="bold")
-        ax.grid(True, linestyle="--", alpha=0.5)
+        # 2. Direct / Beam Irradiance Subplot
+        ax2.plot(pc.index, pc["Bhc"], label="ESRA Clear-Sky (Bhc)", color="#2ca02c", linewidth=2.5, linestyle="--")
+        ax2.plot(pa.index, pa["BHI"], label="Decomposed Horizontal (BHI)", color="#1f77b4", linewidth=2.5, linestyle="--")
+        ax2.plot(pt.index, pt["BTI"], label="Tilted Surface (BTI)", color="#ff7f0e", linewidth=2.5, linestyle="--")
+        ax2.set_title("Direct (Beam) Irradiance Comparison", fontsize=12, fontweight="bold")
+        ax2.set_xlabel("Hour of Day", fontsize=11)
+        ax2.set_ylabel("Irradiance (W/m2)", fontsize=11)
+        ax2.legend(fontsize=9, loc="upper left")
+        ax2.grid(True, linestyle="--", alpha=0.5)
 
-        # Labels
-        if idx % 3 == 0:
-            ax.set_ylabel("Irradiance (W/m2)", fontsize=10)
-        if idx >= 9:
-            ax.set_xlabel("Hour of Day", fontsize=10)
+        # 3. Diffuse Irradiance Subplot
+        ax3.plot(pc.index, pc["Dhc"], label="ESRA Clear-Sky (Dhc)", color="#2ca02c", linewidth=2.5, linestyle=":")
+        ax3.plot(pa.index, pa["DHI"], label="Decomposed Horizontal (DHI)", color="#1f77b4", linewidth=2.5, linestyle=":")
+        ax3.plot(pt.index, pt["DTI"], label="Tilted Surface (DTI)", color="#ff7f0e", linewidth=2.5, linestyle=":")
+        ax3.set_title("Diffuse Irradiance Comparison", fontsize=12, fontweight="bold")
+        ax3.set_xlabel("Hour of Day", fontsize=11)
+        ax3.set_ylabel("Irradiance (W/m2)", fontsize=11)
+        ax3.legend(fontsize=9, loc="upper left")
+        ax3.grid(True, linestyle="--", alpha=0.5)
 
-        # Legend only on the first plot to avoid clutter
-        if idx == 0:
-            ax.legend(fontsize=9, loc="upper left")
+        # Super title for the whole figure
+        plt.suptitle(f"Monthly Average Daily Cycles - {month_names[m]}", fontsize=15, fontweight="bold", y=0.98)
 
-    plt.tight_layout()
-    plt.savefig("solar_profiles.png", dpi=150)
-    print("Monthly average daily cycles saved to solar_profiles.png")
+        plt.tight_layout()
+        filename = f"monthly_profile_Month_{m}.png"
+        plt.savefig(filename, dpi=150)
+        plt.close()
+        print(f"Plot saved to {filename}")
 
 
 def plot_pvgis_comparison(avg_monthly_sums, pvgis_horiz, pvgis_tilt):
