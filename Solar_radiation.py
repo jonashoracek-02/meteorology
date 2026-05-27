@@ -287,6 +287,43 @@ def calculate_transposition(df, slope, azimuth_surface, albedo, lat):
     return df
 
 
+def calculate_transposition_hay(df, slope, azimuth_surface, albedo, lat):
+    print("Calculating Transposition (Hay Model)...")
+    beta = np.deg2rad(slope)
+    gamma = np.deg2rad(azimuth_surface)
+    phi = np.deg2rad(lat)
+    delta = np.deg2rad(df["delta"].values)
+    omega = np.deg2rad(df["omega"].values)
+    alpha_rad = np.deg2rad(df["alpha"].values)
+
+    cos_theta = (
+        np.sin(delta) * np.sin(phi) * np.cos(beta)
+        - np.sin(delta) * np.cos(phi) * np.sin(beta) * np.cos(gamma)
+        + np.cos(delta) * np.cos(phi) * np.cos(beta) * np.cos(omega)
+        + np.cos(delta) * np.sin(phi) * np.sin(beta) * np.cos(gamma) * np.cos(omega)
+        + np.cos(delta) * np.sin(beta) * np.sin(gamma) * np.sin(omega)
+    )
+
+    cos_theta = np.clip(cos_theta, 0, 1)
+    sin_alpha = np.sin(alpha_rad)
+    Rb = np.where(sin_alpha > 0, cos_theta / sin_alpha, 0)
+
+    # Calculate Anisotropy Index Ai = BHI / Gext
+    Gext = df["Gext"].values
+    BHI = df["BHI"].values
+    Ai = np.zeros_like(BHI)
+    mask_gext = Gext > 0
+    Ai[mask_gext] = BHI[mask_gext] / Gext[mask_gext]
+    Ai = np.clip(Ai, 0, 1)
+
+    df["BTI"] = df["BHI"] * Rb
+    df["DTI"] = df["DHI"] * (Ai * Rb + (1 - Ai) * ((1 + np.cos(beta)) / 2))
+    df["RTI"] = df["GHI"] * albedo * ((1 - np.cos(beta)) / 2)
+    df["GTI"] = df["BTI"] + df["DTI"] + df["RTI"]
+
+    return df
+
+
 def fetch_pvgis_data(lat, lon, slope, azimuth):
     print("Loading PVGIS reference data from file...")
     file_path = "Monthlydata_46.025_11.126_SA3_2005_2023.csv"
@@ -439,7 +476,7 @@ def main():
 
     df = gap_filling(df)
     df = decomposition_orgill_hollands(df)
-    df = calculate_transposition(df, SLOPE, AZIMUTH_SURFACE, ALBEDO, LATITUDE)
+    df = calculate_transposition_hay(df, SLOPE, AZIMUTH_SURFACE, ALBEDO, LATITUDE)
 
     profile_clear, profile_actual, profile_tilted = evaluate_monthly_profiles(df)
 
