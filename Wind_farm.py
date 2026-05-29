@@ -98,9 +98,22 @@ def apply_mcp(df_pred, df_ref):
     mu_ref = concurrent["WS_ref"].mean()
     sigma_ref = concurrent["WS_ref"].std()
 
+    # Calculate R^2 metrics for the concurrent period
+    # Calculate Pearson Correlation manually using the formula:
+    # r = sum((x - mean_x) * (y - mean_y)) / sqrt(sum((x - mean_x)**2) * sum((y - mean_y)**2))
+    x = concurrent["WS_ref"]
+    y = concurrent["WS_pred"]
+    mean_x = x.mean()
+    mean_y = y.mean()
+
+    numerator = np.sum((x - mean_x) * (y - mean_y))
+    denominator = np.sqrt(np.sum((x - mean_x) ** 2) * np.sum((y - mean_y) ** 2))
+    r = numerator / denominator
+
     print("\nConcurrent Period Stats:")
     print(f"Predictor - Mean: {mu_pred:.2f} m/s, Std: {sigma_pred:.2f} m/s")
     print(f"Reference - Mean: {mu_ref:.2f} m/s, Std: {sigma_ref:.2f} m/s")
+    print(f"Pearson Correlation (r): {r:.4f}")
 
     # Apply relation to the full 10-year reference dataset
     df_ref["WS_pred_mcp"] = mu_pred + (sigma_pred / sigma_ref) * (
